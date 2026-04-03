@@ -9,7 +9,11 @@ load_dotenv(override=True)
 
 api_key = os.getenv("OPENROUTER_API_KEY")
 api_url = os.getenv("OPENROUTER_API_BASE")
-DB = "prices.db"
+
+# find current script directory and create path to database
+script_dir = os.path.dirname(os.path.abspath(__file__))
+db_path = os.path.join(script_dir, "prices.db")
+DB = db_path
 
 # Check the key
 
@@ -36,13 +40,13 @@ Always be accurate. If you don't know the answer, say so.
 """
 
 
-def get_ticket_price(city):
-    print(f"DATABASE TOOL CALLED: Getting price for {city}", flush=True)
+def get_ticket_price(destination_city):
+    print(f"DATABASE TOOL CALLED: Getting price for {destination_city}", flush=True)
     with sqlite3.connect(DB) as conn:
         cursor = conn.cursor()
-        cursor.execute('SELECT price FROM prices WHERE city = ?', (city.lower(),))
+        cursor.execute('SELECT price FROM prices WHERE city = ?', (destination_city.lower(),))
         result = cursor.fetchone()
-        return f"Ticket price to {city} is ${result[0]}" if result else "No price data available for this city"
+        return f"Ticket price to {destination_city} is ${result[0]}" if result else "No price data available for this city"
     
 
 # function to give the list of cities we have prices for
@@ -94,21 +98,21 @@ print(get_ticket_price("London"))
 def handle_tool_calls(message):
     print(message)
     responses = []
+    
+    available_functions = {
+        "get_ticket_price": get_ticket_price,
+        "list_cities": list_cities
+    }
+    
     for tool_call in message.tool_calls:
-        if tool_call.function.name == "get_ticket_price":
+        function_name = tool_call.function.name
+        function_to_call = available_functions.get(function_name)
+        if function_to_call:
             arguments = json.loads(tool_call.function.arguments)
-            city = arguments.get('destination_city')
-            price_details = get_ticket_price(city)
+            result = function_to_call(**arguments)
             responses.append({
                 "role": "tool",
-                "content": price_details,
-                "tool_call_id": tool_call.id
-            })
-        elif tool_call.function.name == "list_cities":
-            cities_info = list_cities()
-            responses.append({
-                "role": "tool",
-                "content": cities_info,
+                "content": str(result),
                 "tool_call_id": tool_call.id
             })
     return responses
