@@ -104,6 +104,13 @@ def handle_tool_calls(message):
                 "content": price_details,
                 "tool_call_id": tool_call.id
             })
+        elif tool_call.function.name == "list_cities":
+            cities_info = list_cities()
+            responses.append({
+                "role": "tool",
+                "content": cities_info,
+                "tool_call_id": tool_call.id
+            })
     return responses
 
 def chat(message, history):
