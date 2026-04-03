@@ -98,15 +98,10 @@ print(get_ticket_price("London"))
 def handle_tool_calls(message):
     print(message)
     responses = []
-    
-    available_functions = {
-        "get_ticket_price": get_ticket_price,
-        "list_cities": list_cities
-    }
-    
+
     for tool_call in message.tool_calls:
         function_name = tool_call.function.name
-        function_to_call = available_functions.get(function_name)
+        function_to_call = globals().get(function_name)
         if function_to_call:
             arguments = json.loads(tool_call.function.arguments)
             result = function_to_call(**arguments)
